@@ -67,8 +67,10 @@ same lock and check that the new availability window still contains every
 approved stay.
 
 The lock is about behaving nicely under contention. The constraint is about
-correctness; the mutation test in the PR history (removing the lock *and*
-the constraint) is what makes the concurrency tests fail.
+correctness. As a sanity check on the tests themselves, I removed both the
+lock and the constraint on a scratch database once: three of the concurrency
+tests failed (overlapping approvals got through, and the races deadlocked).
+With either one in place they pass.
 
 Deadlocks and serialization failures (`40P01`, `40001`) are retried up to
 three times with jitter by `withTx`.
