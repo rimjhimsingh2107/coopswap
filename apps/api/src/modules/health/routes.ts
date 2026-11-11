@@ -2,6 +2,7 @@ import { Router } from 'express';
 import type { HealthStatus } from '@coopswap/shared';
 import { pool } from '../../db/pool.js';
 import { redis } from '../../lib/redis.js';
+import { buildOpenApi } from './openapi.js';
 
 const startedAt = Date.now();
 
@@ -37,4 +38,9 @@ healthRouter.get('/readyz', async (_req, res) => {
     checks: { postgres, redis: redisStatus },
   };
   res.status(postgres === 'up' ? 200 : 503).json({ data: body });
+});
+
+let spec: object | null = null;
+healthRouter.get('/openapi.json', (_req, res) => {
+  res.json((spec ??= buildOpenApi()));
 });
