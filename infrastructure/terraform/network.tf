@@ -21,12 +21,15 @@ module "vpc" {
 resource "aws_security_group" "alb" {
   name   = "coopswap-${var.env}-alb"
   vpc_id = module.vpc.vpc_id
-  ingress {
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    # only cloudfront talks to the alb
-    prefix_list_ids = [data.aws_ec2_managed_prefix_list.cloudfront.id]
+  # only cloudfront talks to the alb
+  dynamic "ingress" {
+    for_each = [80, 443]
+    content {
+      from_port       = ingress.value
+      to_port         = ingress.value
+      protocol        = "tcp"
+      prefix_list_ids = [data.aws_ec2_managed_prefix_list.cloudfront.id]
+    }
   }
   egress {
     from_port   = 0

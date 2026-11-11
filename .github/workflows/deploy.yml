@@ -1,0 +1,92 @@
+name: Deploy
+
+# Manual, per environment. Does nothing until the AWS side exists (see
+# infrastructure/README.md) and the environment's variables are filled in.
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        type: choice
+        options: [staging, production]
+        default: staging
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: deploy-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: vars.AWS_ROLE_ARN != ''
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    env:
+      IMAGE: ${{ vars.ECR_REPOSITORY }}:${{ github.sha }}
+      FAMILY: coopswap-${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - uses: aws-actions/amazon-ecr-login@v2
+      - uses: docker/setup-buildx-action@v3
+      - name: Build + push api image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          push: true
+          tags: ${{ env.IMAGE }}
+          build-args: APP_VERSION=${{ github.sha }}
+          cache-from: type=gha,scope=api
+
+      - name: Register task definitions with the new image
+        id: taskdefs
+        run: |
+          for kind in api migrate; do
+            aws ecs describe-task-definition --task-definition "$FAMILY-$kind" --query taskDefinition > td.json
+            jq --arg img "$IMAGE" --arg v "${GITHUB_SHA::7}" '
+              .containerDefinitions[0].image = $img
+              | .containerDefinitions[0].environment += [{"name":"APP_VERSION","value":$v}]
+              | del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)' td.json > td-new.json
+            arn=$(aws ecs register-task-definition --cli-input-json file://td-new.json --query taskDefinition.taskDefinitionArn --output text)
+            echo "$kind=$arn" >> "$GITHUB_OUTPUT"
+          done
+
+      # Migrations go first and must be backwards compatible with the code
+      # that's still running (expand, deploy, contract). See docs/operations.md.
+      - name: Run migrations
+        run: |
+          task=$(aws ecs run-task --cluster "${{ vars.ECS_CLUSTER }}" --launch-type FARGATE \
+            --task-definition "${{ steps.taskdefs.outputs.migrate }}" \
+            --network-configuration "awsvpcConfiguration={subnets=[${{ vars.PRIVATE_SUBNETS }}],securityGroups=[${{ vars.API_SECURITY_GROUP }}]}" \
+            --query 'tasks[0].taskArn' --output text)
+          aws ecs wait tasks-stopped --cluster "${{ vars.ECS_CLUSTER }}" --tasks "$task"
+          code=$(aws ecs describe-tasks --cluster "${{ vars.ECS_CLUSTER }}" --tasks "$task" --query 'tasks[0].containers[0].exitCode' --output text)
+          echo "migrate exit code: $code"
+          test "$code" = "0"
+
+      - name: Roll the api service
+        run: |
+          aws ecs update-service --cluster "${{ vars.ECS_CLUSTER }}" --service api --task-definition "${{ steps.taskdefs.outputs.api }}" > /dev/null
+          # circuit breaker rolls back automatically if new tasks fail health checks
+          aws ecs wait services-stable --cluster "${{ vars.ECS_CLUSTER }}" --services api
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - name: Build + upload web
+        run: |
+          pnpm install --frozen-lockfile --filter @coopswap/web...
+          pnpm --filter @coopswap/web build
+          # hashed assets first with long cache, index.html last with no-cache
+          aws s3 sync apps/web/dist/assets "s3://${{ vars.WEB_BUCKET }}/assets" --cache-control "public,max-age=31536000,immutable"
+          aws s3 sync apps/web/dist "s3://${{ vars.WEB_BUCKET }}" --exclude "assets/*" --cache-control "no-cache" --delete
+          aws cloudfront create-invalidation --distribution-id "${{ vars.CLOUDFRONT_ID }}" --paths /index.html / > /dev/null
+
+      - name: Smoke check
+        run: curl -fsS --retry 10 --retry-delay 5 "${{ vars.APP_URL }}/api/readyz"

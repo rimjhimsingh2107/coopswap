@@ -31,10 +31,12 @@ resource "aws_acm_certificate" "alb" {
   validation_method = "DNS"
 }
 
-resource "aws_lb_listener" "https" {
+# with a domain we get a cert and cloudfront talks https to the alb. without
+# one (quick staging) the alb only accepts cloudfront's ip ranges over http.
+resource "aws_lb_listener" "main" {
   load_balancer_arn = aws_lb.api.arn
-  port              = 443
-  protocol          = "HTTPS"
+  port              = var.domain != "" ? 443 : 80
+  protocol          = var.domain != "" ? "HTTPS" : "HTTP"
   certificate_arn   = var.domain != "" ? aws_acm_certificate.alb[0].arn : null
   default_action {
     type             = "forward"
@@ -79,7 +81,7 @@ resource "aws_cloudfront_distribution" "main" {
     custom_origin_config {
       http_port              = 80
       https_port             = 443
-      origin_protocol_policy = "https-only"
+      origin_protocol_policy = var.domain != "" ? "https-only" : "http-only"
       origin_ssl_protocols   = ["TLSv1.2"]
     }
   }
