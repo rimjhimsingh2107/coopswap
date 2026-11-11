@@ -6,9 +6,11 @@ import { pool } from './db/pool.js';
 import { redis } from './lib/redis.js';
 import { startJobs, stopJobs } from './jobs/scheduler.js';
 import { jobs } from './jobs/index.js';
+import { attachRealtime } from './realtime/server.js';
 
 const app = createApp();
 const server = createServer(app);
+const realtime = attachRealtime(server);
 
 server.listen(env.PORT, () => {
   logger.info({ port: env.PORT }, 'api listening');
@@ -22,6 +24,7 @@ async function shutdown(signal: string) {
   shuttingDown = true;
   logger.info({ signal }, 'shutting down');
   stopJobs();
+  await realtime.close().catch(() => {});
   server.close();
   await Promise.allSettled([pool.end(), redis.quit()]);
   process.exit(0);

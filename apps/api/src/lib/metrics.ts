@@ -51,6 +51,28 @@ export const metrics = {
     labelNames: ['job'],
     registers: [registry],
   }),
+  wsConnections: new client.Gauge({
+    name: 'ws_connections',
+    help: 'Open socket.io connections on this instance',
+    registers: [registry],
+  }),
+  messagesSent: new client.Counter({
+    name: 'messages_sent_total',
+    help: 'Chat messages persisted',
+    registers: [registry],
+  }),
+  messageDeliveryLatency: new client.Histogram({
+    name: 'message_delivery_latency_seconds',
+    help: 'Time from a message being stored to the recipient acking delivery',
+    buckets: [0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 15, 60],
+    registers: [registry],
+  }),
+  redisErrors: new client.Counter({
+    name: 'redis_errors_total',
+    help: 'Redis client errors',
+    labelNames: ['client'],
+    registers: [registry],
+  }),
   rateLimited: new client.Counter({
     name: 'rate_limited_requests_total',
     help: 'Requests rejected by a rate limiter',
