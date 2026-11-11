@@ -10,3 +10,4 @@ playwright-report
 test-results
 .vite
 .data
+tests/load/users.json

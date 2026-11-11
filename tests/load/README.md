@@ -17,7 +17,7 @@ k6 summaries as an artifact. To run it yourself somewhere with Docker:
 ```bash
 docker compose --profile app up -d --build
 pnpm --filter @coopswap/api db:seed            # optional, gives search something to chew on
-DATABASE_URL=postgres://coopswap:coopswap@localhost:5440/coopswap node tests/load/setup-users.mjs 200 > tests/load/users.json
+DATABASE_URL=postgres://coopswap:coopswap@localhost:5440/coopswap node apps/api/scripts/load-test-users.mjs 200 > tests/load/users.json
 k6 run -e BASE=http://localhost:8080 tests/load/search.js --summary-export tests/load/results/search.json
 ```
 

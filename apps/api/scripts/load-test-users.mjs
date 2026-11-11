@@ -1,8 +1,8 @@
 // Creates N verified users straight in the database and prints them as JSON,
 // so k6 doesn't have to go through email verification. Load test only.
-//   node tests/load/setup-users.mjs 200 > tests/load/users.json
-import pg from '../../apps/api/node_modules/pg/lib/index.js';
-import argon2 from '../../apps/api/node_modules/argon2/argon2.cjs';
+//   node apps/api/scripts/load-test-users.mjs 200 > tests/load/users.json
+import pg from 'pg';
+import argon2 from 'argon2';
 
 const n = Number(process.argv[2] ?? 100);
 const password = 'load-test-password-123';
