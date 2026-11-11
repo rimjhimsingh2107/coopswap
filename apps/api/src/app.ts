@@ -16,6 +16,9 @@ import { usersRouter } from './modules/users/routes.js';
 import { listingsRouter } from './modules/listings/index.js';
 import { bookingsRouter } from './modules/bookings/index.js';
 import { messagingRouter } from './modules/messaging/routes.js';
+import { notificationsRouter } from './modules/notifications/index.js';
+import { uploadsRouter } from './modules/uploads/routes.js';
+import { geocodeRouter } from './modules/geocode/routes.js';
 
 export function createApp() {
   const app = express();
@@ -53,6 +56,9 @@ export function createApp() {
   api.use(listingsRouter);
   api.use(bookingsRouter);
   api.use(messagingRouter);
+  api.use(notificationsRouter);
+  api.use(uploadsRouter);
+  api.use(geocodeRouter);
   app.use('/api', api);
 
   app.use(notFoundHandler);
