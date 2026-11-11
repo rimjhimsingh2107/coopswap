@@ -1,0 +1,7 @@
+apiVersion: 1
+providers:
+  - name: coopswap
+    folder: CoopSwap
+    type: file
+    options:
+      path: /var/lib/grafana/dashboards

@@ -1,0 +1,58 @@
+groups:
+  - name: coopswap
+    rules:
+      - alert: ApiHighErrorRate
+        expr: |
+          sum(rate(http_request_duration_seconds_count{status_class="5xx"}[5m]))
+            / clamp_min(sum(rate(http_request_duration_seconds_count[5m])), 1) > 0.02
+        for: 5m
+        labels: { severity: page }
+        annotations:
+          summary: More than 2% of API requests are failing
+
+      - alert: ApiSlow
+        expr: histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket[5m]))) > 0.75
+        for: 10m
+        labels: { severity: ticket }
+        annotations:
+          summary: p95 API latency above 750ms
+
+      - alert: BookingTransactionsFailing
+        expr: sum(rate(db_transaction_duration_seconds_count{tx=~"booking_.*",outcome="rollback"}[10m])) > 0.5
+        for: 10m
+        labels: { severity: ticket }
+        annotations:
+          summary: Booking transactions are rolling back a lot (conflicts are expected, this many isn't)
+
+      - alert: OutboxBacklog
+        expr: max(outbox_backlog) > 500
+        for: 10m
+        labels: { severity: ticket }
+        annotations:
+          summary: Notifications/emails are piling up in the outbox
+
+      - alert: OutboxDeadLetters
+        expr: increase(outbox_events_processed_total{outcome="dead"}[1h]) > 0
+        labels: { severity: ticket }
+        annotations:
+          summary: An outbox event ran out of retries
+
+      - alert: JobFailing
+        expr: increase(job_failures_total[30m]) > 3
+        labels: { severity: ticket }
+        annotations:
+          summary: 'Background job {{ $labels.job }} keeps failing'
+
+      - alert: RedisErrors
+        expr: sum(rate(redis_errors_total[5m])) > 0.1
+        for: 5m
+        labels: { severity: ticket }
+        annotations:
+          summary: Redis client errors (rate limits fall back to memory, realtime fan-out degrades)
+
+      - alert: DbPoolSaturated
+        expr: max(db_pool_connections{state="waiting"}) > 5
+        for: 5m
+        labels: { severity: ticket }
+        annotations:
+          summary: Requests are queueing for database connections

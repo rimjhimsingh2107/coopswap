@@ -1,0 +1,32 @@
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch: {}
+  # last line of defence against PII in span attributes
+  attributes/scrub:
+    actions:
+      - key: http.url
+        action: delete
+      - key: url.query
+        action: delete
+      - key: db.statement.parameters
+        action: delete
+      - key: enduser.id
+        action: delete
+
+exporters:
+  otlp/jaeger:
+    endpoint: jaeger:4317
+    tls:
+      insecure: true
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [attributes/scrub, batch]
+      exporters: [otlp/jaeger]
