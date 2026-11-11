@@ -15,6 +15,7 @@ import { authRouter } from './modules/auth/routes.js';
 import { usersRouter } from './modules/users/routes.js';
 import { listingsRouter } from './modules/listings/index.js';
 import { bookingsRouter } from './modules/bookings/index.js';
+import { messagingRouter } from './modules/messaging/routes.js';
 
 export function createApp() {
   const app = express();
@@ -51,6 +52,7 @@ export function createApp() {
   api.use(usersRouter);
   api.use(listingsRouter);
   api.use(bookingsRouter);
+  api.use(messagingRouter);
   app.use('/api', api);
 
   app.use(notFoundHandler);
