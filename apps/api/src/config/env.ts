@@ -20,6 +20,8 @@ const schema = z.object({
   UNIVERSITY_DOMAINS: z.string().default('northeastern.edu,husky.neu.edu'),
   SMTP_URL: z.string().optional(),
   MAIL_FROM: z.string().default('CoopSwap <no-reply@coopswap.local>'),
+  STORAGE_DRIVER: z.enum(['local', 's3']).default('local'),
+  STORAGE_DIR: z.string().default('.data/uploads'),
   S3_ENDPOINT: z.string().optional(),
   S3_REGION: z.string().default('us-east-1'),
   S3_BUCKET: z.string().default('coopswap-listing-images'),
