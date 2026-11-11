@@ -1,0 +1,28 @@
+# Used by devcontainer.json (Codespaces / VS Code Dev Containers). The app runs
+# in `workspace`; databases are sidecars on the same network.
+services:
+  workspace:
+    image: mcr.microsoft.com/devcontainers/typescript-node:1-22-bookworm
+    volumes:
+      - ..:/workspaces/coopswap:cached
+    command: sleep infinity
+    depends_on: [postgres, redis, mailpit]
+
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: coopswap
+      POSTGRES_PASSWORD: coopswap
+      POSTGRES_DB: coopswap
+    volumes:
+      - devcontainer-pg:/var/lib/postgresql/data
+      - ../database/init:/docker-entrypoint-initdb.d:ro
+
+  redis:
+    image: redis:7.4-alpine
+
+  mailpit:
+    image: axllent/mailpit:v1.27
+
+volumes:
+  devcontainer-pg:
