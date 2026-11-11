@@ -75,6 +75,7 @@ export function Header() {
               <div className="relative">
                 <button
                   className="flex items-center gap-2 rounded-full border border-stone-200 p-1 pr-3 hover:shadow-sm"
+                  aria-label="Account menu"
                   aria-haspopup="menu"
                   aria-expanded={menu}
                   onClick={() => setMenu((m) => !m)}
