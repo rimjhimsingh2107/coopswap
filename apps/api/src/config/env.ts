@@ -9,6 +9,7 @@ if (process.env.NODE_ENV !== 'production' && existsSync('.env')) {
 const schema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().default(4000),
+  METRICS_PORT: z.coerce.number().int().default(9464),
   DATABASE_URL: z.string().url(),
   DATABASE_POOL_MAX: z.coerce.number().int().positive().default(10),
   REDIS_URL: z.string().default('redis://localhost:6380'),

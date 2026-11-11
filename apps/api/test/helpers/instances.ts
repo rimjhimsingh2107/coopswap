@@ -15,7 +15,7 @@ export async function startInstances(n: number, basePort = 4100): Promise<Instan
     const port = basePort + i;
     const proc = spawn(path.join(apiRoot, 'node_modules/.bin/tsx'), ['--conditions=development', 'src/server.ts'], {
       cwd: apiRoot,
-      env: { ...process.env, PORT: String(port), INSTANCE_ID: `test-api-${i}`, DATABASE_POOL_MAX: '10', DISABLE_JOBS: '1' },
+      env: { ...process.env, PORT: String(port), INSTANCE_ID: `test-api-${i}`, DATABASE_POOL_MAX: '10', DISABLE_JOBS: '1', DISABLE_METRICS_SERVER: '1' },
       stdio: ['ignore', 'ignore', 'pipe'],
     });
     proc.stderr?.on('data', (d) => process.stderr.write(`[api-${i}] ${d}`));

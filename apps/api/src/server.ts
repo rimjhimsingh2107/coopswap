@@ -7,11 +7,13 @@ import { redis } from './lib/redis.js';
 import { startJobs, stopJobs } from './jobs/scheduler.js';
 import { jobs } from './jobs/index.js';
 import { attachRealtime } from './realtime/server.js';
+import { startMetricsServer } from './metrics-server.js';
 import { startOutboxRelay, stopOutboxRelay } from './modules/notifications/index.js';
 
 const app = createApp();
 const server = createServer(app);
 const realtime = attachRealtime(server);
+const metricsServer = process.env.DISABLE_METRICS_SERVER === '1' ? null : startMetricsServer(env.METRICS_PORT);
 
 server.listen(env.PORT, () => {
   logger.info({ port: env.PORT }, 'api listening');
@@ -30,6 +32,7 @@ async function shutdown(signal: string) {
   stopOutboxRelay();
   await realtime.close().catch(() => {});
   server.close();
+  metricsServer?.close();
   await Promise.allSettled([pool.end(), redis.quit()]);
   process.exit(0);
 }

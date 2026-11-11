@@ -90,6 +90,12 @@ export const metrics = {
     labelNames: ['name'],
     registers: [registry],
   }),
+  dbPool: new client.Gauge({
+    name: 'db_pool_connections',
+    help: 'pg pool connections by state',
+    labelNames: ['state'],
+    registers: [registry],
+  }),
   rateLimited: new client.Counter({
     name: 'rate_limited_requests_total',
     help: 'Requests rejected by a rate limiter',

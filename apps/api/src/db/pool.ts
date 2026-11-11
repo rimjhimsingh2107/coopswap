@@ -2,6 +2,7 @@ import pg from 'pg';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { env } from '../config/env.js';
 import { logger } from '../lib/logger.js';
+import { metrics } from '../lib/metrics.js';
 import * as schema from './schema.js';
 
 // return DATE columns as plain 'YYYY-MM-DD' strings instead of JS Dates in local tz
@@ -22,4 +23,11 @@ pool.on('error', (err) => {
 });
 
 export const db = drizzle(pool, { schema });
+
+// sampled on scrape-ish cadence; cheap, it's just counters on the pool object
+setInterval(() => {
+  metrics.dbPool.set({ state: 'total' }, pool.totalCount);
+  metrics.dbPool.set({ state: 'idle' }, pool.idleCount);
+  metrics.dbPool.set({ state: 'waiting' }, pool.waitingCount);
+}, 5000).unref();
 export type Db = typeof db;

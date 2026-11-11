@@ -6,6 +6,7 @@ import { pinoHttp } from 'pino-http';
 import { env } from './config/env.js';
 import { logger } from './lib/logger.js';
 import { requestId } from './middleware/request-id.js';
+import { httpMetrics } from './middleware/http-metrics.js';
 import { errorHandler, notFoundHandler } from './middleware/error-handler.js';
 import { healthRouter } from './modules/health/routes.js';
 import { loadSession } from './middleware/session.js';
@@ -28,6 +29,7 @@ export function createApp() {
   app.set('trust proxy', 1);
 
   app.use(requestId);
+  app.use(httpMetrics);
   app.use(
     pinoHttp({
       logger,
