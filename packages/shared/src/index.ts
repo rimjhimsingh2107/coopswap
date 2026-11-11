@@ -3,4 +3,6 @@ export * from './auth.js';
 export * from './bookings.js';
 export * from './dates.js';
 export * from './listings.js';
+export * from './messaging.js';
+export * from './message-merge.js';
 export * from './profile.js';

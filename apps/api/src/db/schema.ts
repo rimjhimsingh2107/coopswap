@@ -224,3 +224,34 @@ export const idempotencyKeys = pgTable(
   },
   (t) => [primaryKey({ columns: [t.userId, t.scope, t.key] })],
 );
+
+export const conversations = pgTable('conversations', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  listingId: uuid('listing_id').notNull(),
+  pairKey: text('pair_key').notNull(),
+  lastSeq: bigint('last_seq', { mode: 'number' }).notNull().default(0),
+  lastMessageAt: ts('last_message_at'),
+  createdAt: ts('created_at').notNull().defaultNow(),
+});
+
+export const conversationParticipants = pgTable(
+  'conversation_participants',
+  {
+    conversationId: uuid('conversation_id').notNull(),
+    userId: uuid('user_id').notNull(),
+    lastReadSeq: bigint('last_read_seq', { mode: 'number' }).notNull().default(0),
+    lastDeliveredSeq: bigint('last_delivered_seq', { mode: 'number' }).notNull().default(0),
+    joinedAt: ts('joined_at').notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.conversationId, t.userId] })],
+);
+
+export const messages = pgTable('messages', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  conversationId: uuid('conversation_id').notNull(),
+  seq: bigint('seq', { mode: 'number' }).notNull(),
+  senderId: uuid('sender_id').notNull(),
+  body: text('body').notNull(),
+  clientId: uuid('client_id').notNull(),
+  createdAt: ts('created_at').notNull().defaultNow(),
+});
