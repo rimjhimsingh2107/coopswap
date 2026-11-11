@@ -3,6 +3,7 @@ import type { MyProfile, PublicProfile, UpdateProfileInput, UpdateSettingsInput 
 import { db } from '../../db/pool.js';
 import { emailTokens, profiles, sessions, universityVerifications, userSettings, users } from '../../db/schema.js';
 import { notFound } from '../../lib/errors.js';
+import { storage } from '../../lib/storage.js';
 import { audit } from '../../lib/audit.js';
 import { verifyPassword } from '../auth/service.js';
 import { hooks } from './deletion-hooks.js';
@@ -16,6 +17,7 @@ export async function getPublicProfile(userId: string): Promise<PublicProfile> {
       displayName: profiles.displayName,
       bio: profiles.bio,
       school: profiles.school,
+      avatarKey: profiles.avatarKey,
       showSchool: userSettings.showSchool,
       createdAt: users.createdAt,
       deletedAt: users.deletedAt,
@@ -31,7 +33,7 @@ export async function getPublicProfile(userId: string): Promise<PublicProfile> {
     displayName: row.displayName,
     bio: row.bio,
     school: row.showSchool ? row.school : null,
-    avatarUrl: null,
+    avatarUrl: row.avatarKey ? await storage.signedUrl(row.avatarKey) : null,
     memberSince: row.createdAt.toISOString(),
     verifiedDomains: row.domains,
   };
@@ -54,7 +56,7 @@ export async function getMyProfile(userId: string): Promise<MyProfile> {
     displayName: profile.displayName,
     bio: profile.bio,
     school: profile.school,
-    avatarUrl: null,
+    avatarUrl: profile.avatarKey ? await storage.signedUrl(profile.avatarKey) : null,
     memberSince: user.createdAt.toISOString(),
     verifiedDomains: row.domains,
     settings: {

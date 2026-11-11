@@ -9,6 +9,9 @@ const testEnv = {
   LOG_LEVEL: 'silent',
   RATE_LIMIT_MULTIPLIER: '1000',
   DATABASE_POOL_MAX: '20',
+  STORAGE_DIR: '.data/test-uploads',
+  // never call the real geocoder from tests
+  GEOCODER_URL: 'http://127.0.0.1:9/',
 };
 
 // set before anything loads src/config/env.ts (global setup included)
