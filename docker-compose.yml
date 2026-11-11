@@ -1,4 +1,36 @@
+# Local services for CoopSwap.
+#
+#   docker compose up -d                                   postgres, redis, mailpit (for `pnpm dev`)
+#   docker compose --profile app up -d --build             + migrations, 2 api replicas, web on :8080
+#   docker compose --profile app --profile observability up -d --build
+#                                                          + otel collector, jaeger, prometheus, grafana
+#
+# Host ports are offset (5440, 6380) so they don't fight with other local projects.
 name: coopswap
+
+x-api: &api
+  build:
+    context: .
+    dockerfile: apps/api/Dockerfile
+  image: coopswap-api:local
+  profiles: [app]
+  environment: &api-env
+    NODE_ENV: production
+    DATABASE_URL: postgres://coopswap:coopswap@postgres:5432/coopswap
+    REDIS_URL: redis://redis:6379
+    WEB_ORIGIN: http://localhost:8080
+    SESSION_SECRET: ${SESSION_SECRET:-local-compose-secret-change-me-0123456789}
+    SMTP_URL: smtp://mailpit:1025
+    STORAGE_DRIVER: local
+    STORAGE_DIR: /data/uploads
+    OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+  volumes:
+    - uploads:/data/uploads
+  depends_on:
+    migrate:
+      condition: service_completed_successfully
+    redis:
+      condition: service_healthy
 
 services:
   postgres:
@@ -28,5 +60,76 @@ services:
       timeout: 3s
       retries: 20
 
+  # catches every outgoing email, ui on http://localhost:8025
+  mailpit:
+    image: axllent/mailpit:v1.27
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+  migrate:
+    <<: *api
+    command: ["node", "dist/db/migrate.js"]
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api-1:
+    <<: *api
+    environment:
+      <<: *api-env
+      INSTANCE_ID: api-1
+
+  api-2:
+    <<: *api
+    environment:
+      <<: *api-env
+      INSTANCE_ID: api-2
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    image: coopswap-web:local
+    profiles: [app]
+    ports:
+      - "8080:8080"
+    depends_on: [api-1, api-2]
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.131.0
+    profiles: [observability]
+    command: ["--config=/etc/otel/collector.yml"]
+    volumes:
+      - ./monitoring/otel/collector.yml:/etc/otel/collector.yml:ro
+
+  jaeger:
+    image: jaegertracing/jaeger:2.9.0
+    profiles: [observability]
+    ports:
+      - "16686:16686"
+
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    profiles: [observability]
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus:/etc/prometheus:ro
+
+  grafana:
+    image: grafana/grafana:12.1.0
+    profiles: [observability]
+    ports:
+      - "3001:3000"
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+
 volumes:
   pgdata:
+  uploads:
