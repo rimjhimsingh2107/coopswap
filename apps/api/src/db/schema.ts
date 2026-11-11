@@ -1,6 +1,12 @@
 import {
   bigint,
   boolean,
+  char,
+  date,
+  doublePrecision,
+  integer,
+  primaryKey,
+  smallint,
   customType,
   jsonb,
   pgEnum,
@@ -103,3 +109,71 @@ export const auditEvents = pgTable('audit_events', {
   createdAt: ts('created_at').notNull().defaultNow(),
 });
 
+
+export const listingStatus = pgEnum('listing_status', ['draft', 'active', 'archived']);
+export const roomType = pgEnum('room_type', ['private_room', 'shared_room', 'studio', 'entire_place']);
+export const furnishing = pgEnum('furnishing', ['furnished', 'partially_furnished', 'unfurnished']);
+
+// generated columns (geo, city_key, search_doc) are left out on purpose, we
+// never write them and the search query references them with raw sql
+export const listings = pgTable('listings', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  ownerId: uuid('owner_id')
+    .notNull()
+    .references(() => users.id),
+  status: listingStatus('status').notNull().default('draft'),
+  title: text('title').notNull(),
+  description: text('description').notNull(),
+  addressLine1: text('address_line1').notNull(),
+  addressLine2: text('address_line2'),
+  lat: doublePrecision('lat').notNull(),
+  lng: doublePrecision('lng').notNull(),
+  neighborhood: text('neighborhood'),
+  city: text('city').notNull(),
+  state: char('state', { length: 2 }).notNull(),
+  postalCode: text('postal_code'),
+  approxLat: doublePrecision('approx_lat').notNull(),
+  approxLng: doublePrecision('approx_lng').notNull(),
+  availableFrom: date('available_from', { mode: 'string' }).notNull(),
+  availableTo: date('available_to', { mode: 'string' }).notNull(),
+  minStayDays: smallint('min_stay_days').notNull().default(30),
+  monthlyRentCents: integer('monthly_rent_cents').notNull(),
+  utilitiesIncluded: boolean('utilities_included').notNull().default(false),
+  utilitiesEstCents: integer('utilities_est_cents'),
+  utilitiesNotes: text('utilities_notes'),
+  furnishing: furnishing('furnishing').notNull(),
+  roomType: roomType('room_type').notNull(),
+  maxOccupants: smallint('max_occupants').notNull(),
+  amenities: text('amenities').array().notNull().default([]),
+  version: integer('version').notNull().default(1),
+  publishedAt: ts('published_at'),
+  createdAt: ts('created_at').notNull().defaultNow(),
+  updatedAt: ts('updated_at').notNull().defaultNow(),
+});
+
+export const listingImages = pgTable('listing_images', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  listingId: uuid('listing_id')
+    .notNull()
+    .references(() => listings.id),
+  storageKey: text('storage_key').notNull(),
+  position: smallint('position').notNull(),
+  width: integer('width').notNull(),
+  height: integer('height').notNull(),
+  bytes: integer('bytes').notNull(),
+  createdAt: ts('created_at').notNull().defaultNow(),
+});
+
+export const savedListings = pgTable(
+  'saved_listings',
+  {
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id),
+    listingId: uuid('listing_id')
+      .notNull()
+      .references(() => listings.id),
+    createdAt: ts('created_at').notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.listingId] })],
+);
