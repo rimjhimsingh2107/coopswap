@@ -7,6 +7,7 @@ import { redis } from './lib/redis.js';
 import { startJobs, stopJobs } from './jobs/scheduler.js';
 import { jobs } from './jobs/index.js';
 import { attachRealtime } from './realtime/server.js';
+import { startOutboxRelay, stopOutboxRelay } from './modules/notifications/index.js';
 
 const app = createApp();
 const server = createServer(app);
@@ -17,6 +18,8 @@ server.listen(env.PORT, () => {
 });
 
 if (process.env.DISABLE_JOBS !== '1') startJobs(jobs);
+// unlike the timed jobs, every instance relays. SKIP LOCKED splits the work
+startOutboxRelay();
 
 let shuttingDown = false;
 async function shutdown(signal: string) {
@@ -24,6 +27,7 @@ async function shutdown(signal: string) {
   shuttingDown = true;
   logger.info({ signal }, 'shutting down');
   stopJobs();
+  stopOutboxRelay();
   await realtime.close().catch(() => {});
   server.close();
   await Promise.allSettled([pool.end(), redis.quit()]);

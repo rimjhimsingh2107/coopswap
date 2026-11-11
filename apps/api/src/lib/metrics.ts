@@ -73,6 +73,17 @@ export const metrics = {
     labelNames: ['client'],
     registers: [registry],
   }),
+  outboxProcessed: new client.Counter({
+    name: 'outbox_events_processed_total',
+    help: 'Outbox events handled by the relay',
+    labelNames: ['topic', 'outcome'],
+    registers: [registry],
+  }),
+  outboxBacklog: new client.Gauge({
+    name: 'outbox_backlog',
+    help: 'Unpublished outbox events',
+    registers: [registry],
+  }),
   rateLimited: new client.Counter({
     name: 'rate_limited_requests_total',
     help: 'Requests rejected by a rate limiter',

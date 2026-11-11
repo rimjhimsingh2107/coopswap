@@ -7,6 +7,7 @@ import { badRequest, notFound } from '../../lib/errors.js';
 import { metrics } from '../../lib/metrics.js';
 import { storage } from '../../lib/storage.js';
 import { emitToUser, emitToUsers } from '../../realtime/io.js';
+import { markConversationNotificationsRead, notify, unreadNotificationCount } from '../notifications/service.js';
 
 type MessageRow = typeof messages.$inferSelect;
 
@@ -107,6 +108,22 @@ export async function sendMessage(user: SessionUser, conversationId: string, bod
         .update(conversationParticipants)
         .set({ lastReadSeq: conv!.seq, lastDeliveredSeq: conv!.seq })
         .where(and(eq(conversationParticipants.conversationId, conversationId), eq(conversationParticipants.userId, user.id)));
+
+      // one collapsing "new messages" notification per conversation, plus an
+      // email a few minutes later if it's still unread then
+      const recipients = await tx
+        .select({ userId: conversationParticipants.userId })
+        .from(conversationParticipants)
+        .where(and(eq(conversationParticipants.conversationId, conversationId), sql`${conversationParticipants.userId} <> ${user.id}`));
+      for (const r of recipients) {
+        await notify(tx, {
+          userId: r.userId,
+          type: 'message.new',
+          payload: { conversationId, actorName: user.displayName },
+          dedupeKey: `conv:${conversationId}`,
+          email: { kind: 'message', delayMs: 5 * 60_000, check: { conversationId, seq: conv!.seq } },
+        });
+      }
       return inserted[0];
     });
   } catch (err) {
@@ -189,7 +206,16 @@ async function updateCursor(userId: string, conversationId: string, field: 'read
 
 export async function markRead(userId: string, conversationId: string, seq: number) {
   const r = await updateCursor(userId, conversationId, 'read', seq);
-  if (r.changed) emitToUser(userId, 'unread', await unreadCounts(userId));
+  if (r.changed) {
+    const [cp] = await db
+      .select({ read: conversationParticipants.lastReadSeq })
+      .from(conversationParticipants)
+      .innerJoin(conversations, eq(conversations.id, conversationParticipants.conversationId))
+      .where(and(eq(conversationParticipants.conversationId, conversationId), eq(conversationParticipants.userId, userId), sql`${conversationParticipants.lastReadSeq} >= ${conversations.lastSeq}`));
+    // caught up on this conversation, so the "new messages" item is done
+    if (cp) await markConversationNotificationsRead(userId, conversationId);
+    emitToUser(userId, 'unread', await unreadCounts(userId));
+  }
   return r;
 }
 
@@ -212,7 +238,7 @@ export async function unreadCounts(userId: string) {
     from conversation_participants p join conversations c on c.id = p.conversation_id
     where p.user_id = ${userId}
   `);
-  return { messages: res.rows[0]?.messages ?? 0, notifications: 0 };
+  return { messages: res.rows[0]?.messages ?? 0, notifications: await unreadNotificationCount(userId) };
 }
 
 export async function listConversations(
