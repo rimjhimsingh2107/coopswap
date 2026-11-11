@@ -14,6 +14,7 @@ import { rateLimit } from './middleware/rate-limit.js';
 import { authRouter } from './modules/auth/routes.js';
 import { usersRouter } from './modules/users/routes.js';
 import { listingsRouter } from './modules/listings/index.js';
+import { bookingsRouter } from './modules/bookings/index.js';
 
 export function createApp() {
   const app = express();
@@ -49,6 +50,7 @@ export function createApp() {
   api.use(authRouter);
   api.use(usersRouter);
   api.use(listingsRouter);
+  api.use(bookingsRouter);
   app.use('/api', api);
 
   app.use(notFoundHandler);

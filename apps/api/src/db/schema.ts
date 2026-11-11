@@ -177,3 +177,50 @@ export const savedListings = pgTable(
   },
   (t) => [primaryKey({ columns: [t.userId, t.listingId] })],
 );
+
+export const bookingStatus = pgEnum('booking_status', ['requested', 'approved', 'rejected', 'canceled', 'expired']);
+
+// `stay` (generated daterange) left out, see the migration
+export const bookings = pgTable('bookings', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  listingId: uuid('listing_id').notNull(),
+  ownerId: uuid('owner_id').notNull(),
+  guestId: uuid('guest_id').notNull(),
+  startDate: date('start_date', { mode: 'string' }).notNull(),
+  endDate: date('end_date', { mode: 'string' }).notNull(),
+  status: bookingStatus('status').notNull().default('requested'),
+  occupants: smallint('occupants').notNull(),
+  message: text('message'),
+  monthlyRentCents: integer('monthly_rent_cents').notNull(),
+  expiresAt: ts('expires_at').notNull(),
+  decidedAt: ts('decided_at'),
+  canceledBy: uuid('canceled_by'),
+  statusReason: text('status_reason'),
+  version: integer('version').notNull().default(1),
+  createdAt: ts('created_at').notNull().defaultNow(),
+  updatedAt: ts('updated_at').notNull().defaultNow(),
+});
+
+export const bookingEvents = pgTable('booking_events', {
+  id: bigint('id', { mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
+  bookingId: uuid('booking_id').notNull(),
+  actorId: uuid('actor_id'),
+  fromStatus: bookingStatus('from_status'),
+  toStatus: bookingStatus('to_status').notNull(),
+  reason: text('reason'),
+  createdAt: ts('created_at').notNull().defaultNow(),
+});
+
+export const idempotencyKeys = pgTable(
+  'idempotency_keys',
+  {
+    userId: uuid('user_id').notNull(),
+    scope: text('scope').notNull(),
+    key: text('key').notNull(),
+    requestHash: bytea('request_hash').notNull(),
+    responseStatus: smallint('response_status'),
+    responseBody: jsonb('response_body'),
+    createdAt: ts('created_at').notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.scope, t.key] })],
+);
