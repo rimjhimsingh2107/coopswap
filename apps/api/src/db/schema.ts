@@ -255,3 +255,25 @@ export const messages = pgTable('messages', {
   clientId: uuid('client_id').notNull(),
   createdAt: ts('created_at').notNull().defaultNow(),
 });
+
+export const notifications = pgTable('notifications', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull(),
+  type: text('type').notNull(),
+  payload: jsonb('payload').notNull().default({}),
+  dedupeKey: text('dedupe_key'),
+  readAt: ts('read_at'),
+  createdAt: ts('created_at').notNull().defaultNow(),
+});
+
+export const outboxEvents = pgTable('outbox_events', {
+  id: bigint('id', { mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
+  topic: text('topic').notNull(),
+  payload: jsonb('payload').notNull(),
+  createdAt: ts('created_at').notNull().defaultNow(),
+  availableAt: ts('available_at').notNull().defaultNow(),
+  lockedUntil: ts('locked_until'),
+  attempts: integer('attempts').notNull().default(0),
+  lastError: text('last_error'),
+  publishedAt: ts('published_at'),
+});
