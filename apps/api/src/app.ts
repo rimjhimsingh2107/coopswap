@@ -13,6 +13,7 @@ import { csrf } from './middleware/csrf.js';
 import { rateLimit } from './middleware/rate-limit.js';
 import { authRouter } from './modules/auth/routes.js';
 import { usersRouter } from './modules/users/routes.js';
+import { listingsRouter } from './modules/listings/index.js';
 
 export function createApp() {
   const app = express();
@@ -47,6 +48,7 @@ export function createApp() {
   api.use(csrf);
   api.use(authRouter);
   api.use(usersRouter);
+  api.use(listingsRouter);
   app.use('/api', api);
 
   app.use(notFoundHandler);
