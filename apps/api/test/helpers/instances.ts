@@ -74,7 +74,8 @@ export class RemoteUser {
       this.cookie = [...this.cookie.split('; ').filter((x) => x && !x.startsWith(`${name}=`)), pair].join('; ');
       if (name === 'cs_csrf') this.csrf = pair!.slice(name.length + 1);
     }
-    const json = res.status === 204 ? null : await res.json();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const json = (res.status === 204 ? null : await res.json()) as any;
     return { status: res.status, body: json, headers: res.headers };
   }
 
