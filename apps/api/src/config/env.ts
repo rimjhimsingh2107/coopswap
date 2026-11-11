@@ -26,6 +26,8 @@ const schema = z.object({
   S3_ACCESS_KEY_ID: z.string().optional(),
   S3_SECRET_ACCESS_KEY: z.string().optional(),
   BOOKING_REQUEST_TTL_HOURS: z.coerce.number().int().positive().default(72),
+  // tests sign up a lot of users from one ip, so they scale limits up
+  RATE_LIMIT_MULTIPLIER: z.coerce.number().positive().default(1),
   INSTANCE_ID: z.string().default(() => `api-${process.pid}`),
   OTEL_EXPORTER_OTLP_ENDPOINT: z.string().optional(),
 });
