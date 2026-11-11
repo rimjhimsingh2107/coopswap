@@ -84,6 +84,12 @@ export const metrics = {
     help: 'Unpublished outbox events',
     registers: [registry],
   }),
+  analyticsEvents: new client.Counter({
+    name: 'analytics_events_total',
+    help: 'Product analytics events accepted',
+    labelNames: ['name'],
+    registers: [registry],
+  }),
   rateLimited: new client.Counter({
     name: 'rate_limited_requests_total',
     help: 'Requests rejected by a rate limiter',

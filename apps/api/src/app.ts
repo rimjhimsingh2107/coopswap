@@ -19,6 +19,7 @@ import { messagingRouter } from './modules/messaging/routes.js';
 import { notificationsRouter } from './modules/notifications/index.js';
 import { uploadsRouter } from './modules/uploads/routes.js';
 import { geocodeRouter } from './modules/geocode/routes.js';
+import { analyticsAdmin, analyticsIntake } from './modules/analytics/routes.js';
 
 export function createApp() {
   const app = express();
@@ -50,6 +51,7 @@ export function createApp() {
   const api = express.Router();
   api.use(rateLimit({ name: 'global', points: 600, durationSec: 60 }));
   api.use(loadSession);
+  api.use(analyticsIntake);
   api.use(csrf);
   api.use(authRouter);
   api.use(usersRouter);
@@ -59,6 +61,7 @@ export function createApp() {
   api.use(notificationsRouter);
   api.use(uploadsRouter);
   api.use(geocodeRouter);
+  api.use(analyticsAdmin);
   app.use('/api', api);
 
   app.use(notFoundHandler);
