@@ -15,6 +15,8 @@ const schema = z.object({
   REDIS_URL: z.string().default('redis://localhost:6380'),
   WEB_ORIGIN: z.string().default('http://localhost:5173'),
   SESSION_SECRET: z.string().min(32),
+  // secure cookies by default in prod. turn off only for plain-http setups like the local compose stack
+  COOKIE_SECURE: z.enum(['true', 'false']).optional(),
   SESSION_TTL_DAYS: z.coerce.number().int().positive().default(14),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
   // which email domains count as "university" addresses. comma separated.
@@ -50,3 +52,4 @@ function load(): Env {
 export const env = load();
 export const isProd = env.NODE_ENV === 'production';
 export const isTest = env.NODE_ENV === 'test';
+export const secureCookies = env.COOKIE_SECURE ? env.COOKIE_SECURE === 'true' : isProd;

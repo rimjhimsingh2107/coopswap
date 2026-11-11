@@ -1,5 +1,5 @@
 import type { RequestHandler } from 'express';
-import { env, isProd } from '../config/env.js';
+import { env, secureCookies } from '../config/env.js';
 import { randomToken, safeEqual } from '../lib/crypto.js';
 import { AppError } from '../lib/errors.js';
 
@@ -14,7 +14,7 @@ export const csrf: RequestHandler = (req, res, next) => {
   let token = req.cookies?.[CSRF_COOKIE];
   if (typeof token !== 'string' || token.length < 20) {
     token = randomToken(24);
-    res.cookie(CSRF_COOKIE, token, { sameSite: 'lax', secure: isProd, path: '/', httpOnly: false });
+    res.cookie(CSRF_COOKIE, token, { sameSite: 'lax', secure: secureCookies, path: '/', httpOnly: false });
     req.cookies[CSRF_COOKIE] = token;
   }
 

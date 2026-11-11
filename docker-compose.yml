@@ -22,6 +22,9 @@ x-api: &api
     SESSION_SECRET: ${SESSION_SECRET:-local-compose-secret-change-me-0123456789}
     SMTP_URL: smtp://mailpit:1025
     STORAGE_DRIVER: local
+    # the compose stack is plain http on localhost
+    COOKIE_SECURE: "false"
+    RATE_LIMIT_MULTIPLIER: ${RATE_LIMIT_MULTIPLIER:-1}
     STORAGE_DIR: /data/uploads
     OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
   volumes:

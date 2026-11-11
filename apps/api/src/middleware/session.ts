@@ -1,18 +1,19 @@
 import type { CookieOptions, RequestHandler, Response } from 'express';
 import { and, eq, gt, isNull, sql } from 'drizzle-orm';
 import type { Role, SessionUser } from '@coopswap/shared';
-import { env, isProd } from '../config/env.js';
+import { env, secureCookies } from '../config/env.js';
 import { db } from '../db/pool.js';
 import { profiles, sessions, universityVerifications, users } from '../db/schema.js';
 import { randomToken, sha256 } from '../lib/crypto.js';
 import { AppError, forbidden, unauthenticated } from '../lib/errors.js';
 
-export const SESSION_COOKIE = isProd ? '__Host-cs_session' : 'cs_session';
+// __Host- needs Secure, so only use the prefix when cookies are secure
+export const SESSION_COOKIE = secureCookies ? '__Host-cs_session' : 'cs_session';
 const TOUCH_EVERY_MS = 10 * 60 * 1000;
 
 const cookieOptions = (): CookieOptions => ({
   httpOnly: true,
-  secure: isProd,
+  secure: secureCookies,
   sameSite: 'lax',
   path: '/',
   maxAge: env.SESSION_TTL_DAYS * 24 * 60 * 60 * 1000,

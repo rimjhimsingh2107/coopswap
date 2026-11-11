@@ -39,10 +39,8 @@ const QUERIES = [
 
 export default function () {
   const q = QUERIES[Math.floor(Math.random() * QUERIES.length)];
-  // spread across ips so the per-ip limiter measures the api, not itself
-  const res = http.get(`${BASE}/api/listings?${q}&limit=24`, {
-    tags: { type: 'search' },
-    headers: { 'x-forwarded-for': `10.${__VU % 255}.${Math.floor(__ITER / 255) % 255}.${__ITER % 255}` },
-  });
+  // rate limits are raised for the run (RATE_LIMIT_MULTIPLIER) since all
+  // traffic comes from one ip
+  const res = http.get(`${BASE}/api/listings?${q}&limit=24`, { tags: { type: 'search' } });
   check(res, { '200': (r) => r.status === 200 });
 }

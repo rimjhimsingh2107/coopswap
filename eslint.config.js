@@ -16,6 +16,11 @@ export default tseslint.config(
     },
   },
   {
+    // k6 runtime globals
+    files: ['tests/load/**/*.js'],
+    languageOptions: { globals: { __ENV: 'readonly', __VU: 'readonly', __ITER: 'readonly', open: 'readonly' } },
+  },
+  {
     files: ['apps/web/**/*.{ts,tsx}'],
     plugins: { 'react-hooks': reactHooks },
     rules: {

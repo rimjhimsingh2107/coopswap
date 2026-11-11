@@ -1,0 +1,67 @@
+name: Load test
+
+# Manual only. Brings the full stack up on the runner (2 api replicas behind
+# nginx, postgres, redis), runs k6 against it and keeps the raw summaries.
+# This is synthetic traffic on a shared GitHub runner, so treat the numbers as
+# relative (before/after a change), not as production capacity.
+on:
+  workflow_dispatch:
+    inputs:
+      scripts:
+        description: which k6 scripts
+        default: search booking-race realtime
+      pairs:
+        description: socket pairs for realtime.js
+        default: '100'
+
+permissions:
+  contents: read
+
+jobs:
+  k6:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - name: Start stack
+        env:
+          SESSION_SECRET: load-test-secret-load-test-secret-123
+          # every k6 request comes from one ip through nginx; without this we'd
+          # mostly be measuring the rate limiter
+          RATE_LIMIT_MULTIPLIER: '1000'
+        run: |
+          docker compose --profile app up -d --build
+          curl --retry 30 --retry-delay 2 --retry-all-errors -fsS http://localhost:8080/api/readyz
+      - name: Seed + load test users
+        env:
+          DATABASE_URL: postgres://coopswap:coopswap@localhost:5440/coopswap
+          SESSION_SECRET: load-test-secret-load-test-secret-123
+          # seeded photos land on the runner, not in the api's volume. search
+          # only returns signed urls so the load test doesn't care
+          STORAGE_DIR: /tmp/seed-uploads
+        run: |
+          pnpm --filter @coopswap/api db:seed
+          node apps/api/scripts/load-test-users.mjs 600 > tests/load/users.json
+      - uses: grafana/setup-k6-action@v1
+      - name: Run k6
+        run: |
+          out="tests/load/results/$(date -u +%Y%m%d-%H%M)-${GITHUB_SHA::7}"
+          mkdir -p "$out"
+          for s in ${{ inputs.scripts }}; do
+            k6 run -e BASE=http://localhost:8080 -e ORIGIN=http://localhost:8080 -e PAIRS=${{ inputs.pairs }} \
+              --summary-export "$out/$s.json" "tests/load/$s.js" | tee "$out/$s.txt" || echo "$s thresholds failed" >> "$out/FAILED"
+          done
+          docker compose logs api-1 api-2 --no-color > "$out/api.log" 2>&1 || true
+          echo "RESULTS_DIR=$out" >> "$GITHUB_ENV"
+      - name: Grab api metrics after the run
+        run: docker compose exec -T api-1 node -e "fetch('http://127.0.0.1:9464/metrics').then(r=>r.text()).then(t=>process.stdout.write(t))" > "$RESULTS_DIR/metrics-api-1.prom" || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: k6-results
+          path: tests/load/results
+      - name: Fail if any thresholds failed
+        run: test ! -f "$RESULTS_DIR/FAILED"
