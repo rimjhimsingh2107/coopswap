@@ -45,7 +45,7 @@ export async function drainOutbox(batch = 50): Promise<number> {
       where published_at is null and available_at <= now()
         and (locked_until is null or locked_until < now())
         and attempts < ${MAX_ATTEMPTS}
-      order by id
+      order by available_at, id
       limit ${batch}
       for update skip locked
     )

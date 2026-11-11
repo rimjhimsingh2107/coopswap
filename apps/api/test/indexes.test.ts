@@ -58,7 +58,7 @@ describe('indexes back the common queries', () => {
   });
 
   it('outbox relay claim', async () => {
-    const p = await plan(`select id from outbox_events where published_at is null and available_at <= now() order by id limit 50`);
+    const p = await plan(`select id from outbox_events where published_at is null and available_at <= now() order by available_at, id limit 50`);
     expect(p).toContain('outbox_pending_idx');
   });
 });
