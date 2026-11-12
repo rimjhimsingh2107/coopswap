@@ -195,7 +195,7 @@ jobs:
           -e DATABASE_URL=postgres://x:y@localhost/z
           coopswap-api:ci node -e "import('./dist/app.js').then(() => { console.log('imports ok'); process.exit(0) })"
       - name: Scan for vulnerabilities
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: coopswap-${{ matrix.app }}:ci
           severity: CRITICAL,HIGH
