@@ -76,7 +76,7 @@ jobs:
           # circuit breaker rolls back automatically if new tasks fail health checks
           aws ecs wait services-stable --cluster "${{ vars.ECS_CLUSTER }}" --services api
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: pnpm }
       - name: Build + upload web
