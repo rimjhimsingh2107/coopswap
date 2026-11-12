@@ -59,7 +59,7 @@ jobs:
           echo "RESULTS_DIR=$out" >> "$GITHUB_ENV"
       - name: Grab api metrics after the run
         run: docker compose exec -T api-1 node -e "fetch('http://127.0.0.1:9464/metrics').then(r=>r.text()).then(t=>process.stdout.write(t))" > "$RESULTS_DIR/metrics-api-1.prom" || true
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: k6-results
           path: tests/load/results
