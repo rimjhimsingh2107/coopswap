@@ -15,7 +15,7 @@ COPY apps/web apps/web
 ARG VITE_MAP_STYLE
 RUN pnpm --filter @coopswap/web build
 
-FROM nginx:1.27-alpine
+FROM nginx:1.31-alpine
 COPY apps/web/nginx.conf /etc/nginx/templates/default.conf.template
 COPY --from=build /repo/apps/web/dist /usr/share/nginx/html
 # upstreams are filled in by the nginx image's envsubst step at start
