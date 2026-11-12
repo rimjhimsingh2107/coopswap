@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.7
 # Build from the repo root: docker build -f apps/web/Dockerfile .
 
-FROM node:22-bookworm-slim AS build
+FROM node:25-bookworm-slim AS build
 ENV PNPM_HOME=/pnpm PATH=/pnpm:$PATH
 RUN corepack enable && corepack prepare pnpm@10.18.0 --activate
 WORKDIR /repo
