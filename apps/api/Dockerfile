@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.7
 # Build from the repo root: docker build -f apps/api/Dockerfile .
 
-FROM node:22-bookworm-slim AS base
+FROM node:25-bookworm-slim AS base
 ENV PNPM_HOME=/pnpm PATH=/pnpm:$PATH
 RUN corepack enable && corepack prepare pnpm@10.18.0 --activate
 WORKDIR /repo
@@ -19,7 +19,7 @@ RUN pnpm --filter @coopswap/shared build && pnpm --filter @coopswap/api build
 # a pruned, production-only node_modules for just the api (+ shared)
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm --filter @coopswap/api deploy --prod --legacy /out
 
-FROM node:22-bookworm-slim AS runtime
+FROM node:25-bookworm-slim AS runtime
 ENV NODE_ENV=production MIGRATIONS_DIR=/app/migrations
 WORKDIR /app
 COPY --from=build --chown=node:node /out/node_modules ./node_modules
